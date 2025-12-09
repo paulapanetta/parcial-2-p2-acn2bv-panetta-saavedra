@@ -1,4 +1,7 @@
 <?php
+error_reporting(E_ERROR | E_PARSE);
+ini_set("display_errors", 0);
+
 header("Content-Type: application/json; charset=utf-8");
 require "db/db.php";
 
@@ -34,6 +37,7 @@ if ($action === "listar") {
     $stmt->execute();
     $total = $stmt->get_result()->fetch_assoc()["total"];
     $pages = ceil($total / $porPagina);
+
     $sql = "SELECT * FROM funko $where LIMIT $porPagina OFFSET $offset";
     $stmt2 = $mysqli->prepare($sql);
 
@@ -67,6 +71,22 @@ if ($action === "agregar") {
         exit;
     }
 
+    if (strlen($nombre) < 3) {
+        echo json_encode(["error" => "El nombre debe tener al menos 3 caracteres"]);
+        exit;
+    }
+
+    $validCats = ["Series", "Peliculas", "Anime"];
+    if (!in_array($categoria, $validCats)) {
+        echo json_encode(["error" => "Categoría inválida"]);
+        exit;
+    }
+
+    if (!preg_match("/\.(png|jpg|jpeg)$/i", $imagen)) {
+        echo json_encode(["error" => "Imagen inválida (solo PNG o JPG)"]);
+        exit;
+    }
+
     $sql = "INSERT INTO funko (nombre, categoria, descripcion, imagen) VALUES (?, ?, ?, ?)";
     $stmt = $mysqli->prepare($sql);
     $stmt->bind_param("ssss", $nombre, $categoria, $descripcion, $imagen);
@@ -81,6 +101,16 @@ if ($action === "eliminar") {
 
     if ($id <= 0) {
         echo json_encode(["error" => "ID inválido"]);
+        exit;
+    }
+
+    $check = $mysqli->prepare("SELECT id_funko FROM funko WHERE id_funko = ?");
+    $check->bind_param("i", $id);
+    $check->execute();
+    $result = $check->get_result();
+
+    if ($result->num_rows === 0) {
+    echo json_encode(["error" => "El ítem no existe"]);
         exit;
     }
 
@@ -103,6 +133,31 @@ if ($action === "editar") {
 
     if (!$id || !$nombre || !$categoria || !$descripcion || !$imagen) {
         echo json_encode(["error" => "Datos incompletos"]);
+        exit;
+    }
+
+    if (strlen($nombre) < 3) {
+        echo json_encode(["error" => "El nombre debe tener al menos 3 caracteres"]);
+        exit;
+    }
+
+    $validCats = ["Series", "Peliculas", "Anime"];
+    if (!in_array($categoria, $validCats)) {
+        echo json_encode(["error" => "Categoría inválida"]);
+        exit;
+    }
+
+    if (!preg_match("/\.(png|jpg|jpeg)$/i", $imagen)) {
+        echo json_encode(["error" => "Imagen inválida (solo PNG o JPG)"]);
+        exit;
+    }
+
+    $check = $mysqli->prepare("SELECT id_funko FROM funko WHERE id_funko = ?");
+    $check->bind_param("i", $id);
+    $check->execute();
+
+    if ($check->get_result()->num_rows === 0) {
+        echo json_encode(["error" => "El ítem no existe"]);
         exit;
     }
 
